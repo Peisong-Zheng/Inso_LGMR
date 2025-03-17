@@ -89,9 +89,9 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     if show_figures:
         plt.figure(figsize=(10, 5))
         for i in range(sat_ens.shape[0]):
-            plt.plot(time, zscore(sat_ens[i, :]), color='gray', alpha=0.3)
-        plt.plot(time, zscore(sat_mean), color='k', lw=2, label='Mean SAT')
-        plt.plot(df_pre['age'], zscore(df_pre['pre']), color='b', lw=2, label='Pre')
+            plt.plot(time, np.flipud(zscore(sat_ens[i, :])), color='gray', alpha=0.3)
+        plt.plot(time, np.flipud(zscore(sat_mean)), color='k', lw=2, label='Mean SAT')
+        plt.plot(df_pre['age'], np.flipud(zscore(df_pre['pre'])), color='b', lw=2, label='Pre')
         plt.xlabel("Time (age)")
         plt.ylabel("SAT")
         plt.title(f"Mean SAT vs. Ensemble SAT at lat={int(ds_sat['lat'].values[lat_idx])}, lon={ds_sat['lon'].values[lon_idx]}")
@@ -111,8 +111,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     if show_figures:
         plt.figure(figsize=(10, 5))
         for i in range(sat_ens_shifted.shape[0]):
-            plt.plot(time, sat_ens_shifted[i, :], color='orange', alpha=0.2)
-        plt.plot(time, sat_mean, color='k', lw=2, label='Mean SAT')
+            plt.plot(time, np.flipud(sat_ens_shifted[i, :]), color='orange', alpha=0.2)
+        plt.plot(time, np.flipud(sat_mean), color='k', lw=2, label='Mean SAT')
         plt.xlabel("Time (age)")
         plt.ylabel("SAT")
         plt.title("Mean SAT vs. Shifted Ensemble SAT")
@@ -124,8 +124,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     # ---------------------------
     df_ccm = pd.DataFrame({
         'Time': time,
-        'X': sat_mean,
-        'Y': df_pre['pre'].values
+        'X': np.flipud(sat_mean),
+        'Y': np.flipud(df_pre['pre'].values)
     })
     ccm_out = CCM(
         dataFrame   = df_ccm,
@@ -147,8 +147,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     for i in range(sat_ens_shifted.shape[0]):
         df_temp = pd.DataFrame({
             'Time': time,
-            'X': sat_ens_shifted[i, :],
-            'Y': pre_ran[i]
+            'X': np.flipud(sat_ens_shifted[i, :]),
+            'Y': np.flipud(pre_ran[i])
         })
         try:
             out = CCM(
