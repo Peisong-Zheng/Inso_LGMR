@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from pyEDM import CCM
 from scipy.stats import zscore
 
-def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, samples, 
-                     E_val, tau_val, Tp_val, libSizes, show_figures=True):
+def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, ens_sample, 
+                     E_val, tau_val, Tp_val, libSizes, sample=10, show_figures=True):
     """
     Run CCM analysis at a specified grid point using the mean SAT, ensemble SAT, 
     and an interpolated version of pre with random age shifts.
@@ -53,8 +53,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
 
   
 
-    df_pre['age'] = df_pre['age'] 
-    df_pre['pre'] = df_pre['pre'].values
+    # df_pre['age'] = df_pre['age'] 
+    # df_pre['pre'] = df_pre['pre'].values
 
     # # flip the time order of the ds_sat['sat']
     # sat_mean = sat_mean[::-1]
@@ -65,22 +65,22 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
 
     
     # Randomly select "samples" ensemble members
-    sat_ens = sat_ens[np.random.choice(sat_ens.shape[0], samples, replace=False), :]
+    sat_ens = sat_ens[np.random.choice(sat_ens.shape[0], ens_sample, replace=False), :]
     
     # ---------------------------
     # 2. Generate random age series and interpolate pre for each sample
     # ---------------------------
     nTime = len(time)
     # For each time point, generate a random integer between (time[i]-100) and (time[i]+100)
-    sat_age_ran = np.empty((samples, nTime))
-    for i in range(samples):
+    sat_age_ran = np.empty((ens_sample, nTime))
+    for i in range(ens_sample):
         # np.random.randint can work with arrays if low and high are arrays
-        sat_age_ran[i] = np.random.randint(time - 100, time + 100)
+        sat_age_ran[i] = np.random.randint(time - 100, time + 99)
     
     pre_arr = df_pre['pre'].values
     pre_age = df_pre['age'].values 
-    pre_ran = np.empty((samples, len(pre_age)))
-    for i in range(samples):
+    pre_ran = np.empty((ens_sample, len(pre_age)))
+    for i in range(ens_sample):
         pre_ran[i] = np.interp(sat_age_ran[i], pre_age, pre_arr)
     
     # ---------------------------
@@ -89,9 +89,9 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     if show_figures:
         plt.figure(figsize=(10, 5))
         for i in range(sat_ens.shape[0]):
-            plt.plot(time, np.flipud(zscore(sat_ens[i, :])), color='gray', alpha=0.3)
-        plt.plot(time, np.flipud(zscore(sat_mean)), color='k', lw=2, label='Mean SAT')
-        plt.plot(df_pre['age'], np.flipud(zscore(df_pre['pre'])), color='b', lw=2, label='Pre')
+            plt.plot(time, zscore(sat_ens[i, :]), color='gray', alpha=0.3)
+        plt.plot(time, zscore(sat_mean), color='k', lw=2, label='Mean SAT')
+        plt.plot(df_pre['age'], zscore(df_pre['pre']), color='b', lw=2, label='Pre')
         plt.xlabel("Time (age)")
         plt.ylabel("SAT")
         plt.title(f"Mean SAT vs. Ensemble SAT at lat={int(ds_sat['lat'].values[lat_idx])}, lon={ds_sat['lon'].values[lon_idx]}")
@@ -111,8 +111,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     if show_figures:
         plt.figure(figsize=(10, 5))
         for i in range(sat_ens_shifted.shape[0]):
-            plt.plot(time, np.flipud(sat_ens_shifted[i, :]), color='orange', alpha=0.2)
-        plt.plot(time, np.flipud(sat_mean), color='k', lw=2, label='Mean SAT')
+            plt.plot(time, sat_ens_shifted[i, :], color='orange', alpha=0.2)
+        plt.plot(time, sat_mean, color='k', lw=2, label='Mean SAT')
         plt.xlabel("Time (age)")
         plt.ylabel("SAT")
         plt.title("Mean SAT vs. Shifted Ensemble SAT")
@@ -124,8 +124,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     # ---------------------------
     df_ccm = pd.DataFrame({
         'Time': time,
-        'X': np.flipud(sat_mean),
-        'Y': np.flipud(df_pre['pre'].values)
+        'X': sat_mean,
+        'Y': df_pre['pre'].values
     })
     ccm_out = CCM(
         dataFrame   = df_ccm,
@@ -134,7 +134,7 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
         columns     = "X",   # SAT manifold
         target      = "Y",   # predict pre
         libSizes    = libSizes,
-        sample      = 10,
+        sample      = sample,
         random      = True,
         replacement = False,
         Tp          = Tp_val
@@ -147,8 +147,8 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     for i in range(sat_ens_shifted.shape[0]):
         df_temp = pd.DataFrame({
             'Time': time,
-            'X': np.flipud(sat_ens_shifted[i, :]),
-            'Y': np.flipud(pre_ran[i])
+            'X': sat_ens_shifted[i, :],
+            'Y': pre_ran[i]
         })
         try:
             out = CCM(
@@ -158,7 +158,7 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
                 columns     = "X",
                 target      = "Y",
                 libSizes    = libSizes,
-                sample      = 10,
+                sample      = sample,
                 random      = True,
                 replacement = False,
                 Tp          = Tp_val
@@ -209,7 +209,7 @@ def ccm_significance_statistic(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx, sam
     }
 
 
-def ccm_significance_test(ccm_mean, ensemble_ccm, if_plot=False):
+def ccm_significance_test(ccm_mean, ensemble_ccm, uni_dir=False, if_plot=False):
     """
     Test whether the CCM result for the mean is significantly different from that of the shifted ensemble.
     
@@ -228,9 +228,6 @@ def ccm_significance_test(ccm_mean, ensemble_ccm, if_plot=False):
     # Use the maximum LibSize as the test point.
     max_lib = ccm_mean["LibSize"].max()
     
-    # Extract mean values at the maximum LibSize.
-    # mean_sat2pre = ccm_mean.loc[ccm_mean["LibSize"] == max_lib, "X:Y"].values[0]
-    # mean_pre2sat = ccm_mean.loc[ccm_mean["LibSize"] == max_lib, "Y:X"].values[0]
 
     mean_sat2pre = np.mean(ccm_mean['X:Y'])
     mean_pre2sat = np.mean(ccm_mean['Y:X'])
@@ -289,7 +286,11 @@ def ccm_significance_test(ccm_mean, ensemble_ccm, if_plot=False):
     # Condition 2: Mean pre->SAT prediction (Y:X) is within the ensemble range.
     non_significant_pre2sat = (mean_pre2sat <= upper_pre2sat)
     
-    return significant_sat2pre and non_significant_pre2sat
+    # return significant_sat2pre and non_significant_pre2sat
+    if uni_dir:
+        return significant_sat2pre
+    else:
+        return significant_sat2pre and non_significant_pre2sat
 
 # Example usage:
 # result = ccm_significance_test(ccm_out, ensemble_ccm)
