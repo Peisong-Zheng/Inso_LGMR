@@ -250,25 +250,39 @@ def ccm_significance_test(ccm_mean, ensemble_ccm, uni_dir=False, if_plot=False):
     ens_pre2sat = np.array(ens_pre2sat)
 
     if if_plot:
-        # plot the histogram of the ensemble values and a vertical line for the mean
-        fig, axes = plt.subplots(1, 2, figsize=(12, 4),dpi=100)
-        ax1 = axes[0]
-        ax2 = axes[1]
-        ax1.hist(ens_sat2pre, bins=20, density=True, color='lightcoral', alpha=0.5, label='Ensemble SAT->pre')
-        ax1.axvline(mean_sat2pre, color='red', linestyle='--', label='Mean SAT->pre')
-        ax1.set_title(r'$\hat{pre}|M_{sat}$')
-        # add x-axis label
-        ax1.set_xlabel("Prediction Skill (ρ)")
-        ax1.set_ylabel("Frequency")
-   
+        # in case uni_dir is false plot figure with two subplots
+    
+        if uni_dir:
+            # plot the histogram of the ensemble values and a vertical line for the mean
+            fig, ax = plt.subplots(1, 1, figsize=(6, 4),dpi=100)
+            ax.hist(ens_sat2pre, bins=20, density=True, color='lightcoral', alpha=0.5, label='Ensemble SAT->pre')
+            ax.axvline(mean_sat2pre, color='red', linestyle='--', label='Mean SAT->pre')
+            ax.set_title(r'$\hat{pre}|M_{sat}$')
+            # add x-axis label
+            ax.set_xlabel("Prediction Skill (ρ)")
+            ax.set_ylabel("Frequency")
+            ax.legend()
+            plt.show()
+        else:
+            # plot the histogram of the ensemble values and a vertical line for the mean
+            fig, axes = plt.subplots(1, 2, figsize=(12, 4),dpi=100)
+            ax1 = axes[0]
+            ax2 = axes[1]
+            ax1.hist(ens_sat2pre, bins=20, density=True, color='lightcoral', alpha=0.5, label='Ensemble SAT->pre')
+            ax1.axvline(mean_sat2pre, color='red', linestyle='--', label='Mean SAT->pre')
+            ax1.set_title(r'$\hat{pre}|M_{sat}$')
+            # add x-axis label
+            ax1.set_xlabel("Prediction Skill (ρ)")
+            ax1.set_ylabel("Frequency")
+    
 
-        # ax1.legend()
-        ax2.hist(ens_pre2sat, bins=20, density=True, color='skyblue', alpha=0.5, label='Ensemble pre->SAT')
-        ax2.axvline(mean_pre2sat, color='blue', linestyle='--', label='Mean pre->SAT')
-        ax2.set_title(r'$\hat{sat}|M_{pre}$')
-        # add x-axis label
-        ax2.set_xlabel("Prediction Skill (ρ)")
-        ax2.set_ylabel("Frequency")
+            # ax1.legend()
+            ax2.hist(ens_pre2sat, bins=20, density=True, color='skyblue', alpha=0.5, label='Ensemble pre->SAT')
+            ax2.axvline(mean_pre2sat, color='blue', linestyle='--', label='Mean pre->SAT')
+            ax2.set_title(r'$\hat{sat}|M_{pre}$')
+            # add x-axis label
+            ax2.set_xlabel("Prediction Skill (ρ)")
+            ax2.set_ylabel("Frequency")
 
 
         # ax2.legend()
