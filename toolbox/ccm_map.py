@@ -8,7 +8,7 @@ from pyEDM import CCM
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,v_rage='auto',show_plot=True):
+def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70",v_rage='auto',show_plot=True):
     """
     Compute and plot a global map of CCM skill using pyEDM's CCM.
     
@@ -33,7 +33,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,v_rage='auto',show_plot=True):
     rho_map = np.full((nlat, nlon), np.nan)
     
     # CCM parameter: library sizes (this could also be made an input if desired)
-    libSizes = "10 20 30 40 50 60 70"
+    
     
     # ------------------------------------------------
     # Loop over all lat/lon grid points and compute CCM skill
