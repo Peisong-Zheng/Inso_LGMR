@@ -139,6 +139,10 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
     rho_map = np.full((nlat, nlon), np.nan)
     
     # CCM parameter: library sizes (this could also be made an input if desired)
+
+    column_name = "sat"
+    # target_name = column name of the second column in the df_pre
+    target_name = df_pre.columns[1]
     
     
     # ------------------------------------------------
@@ -151,8 +155,8 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
 
             # Build temporary DataFrame for CCM (predicting "X" using "Y")
             temp_df = pd.DataFrame({
-                "Time": ages*-1,
-                "pre": df_pre["pre"],  # target (what we want to predict)
+                "Time": ages,
+                "target": df_pre[target_name],  # target (what we want to predict)
                 "sat": sat_ts,         # predictor
             })
 
@@ -162,7 +166,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
                 E           = E,
                 tau         = tau,
                 columns     = "sat",
-                target      = "pre",
+                target      = "target",
                 libSizes    = libSizes,
                 sample      = 10,
                 random      = True,
@@ -173,7 +177,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
             # Extract the mean CCM skill at the largest library size
             largest_L = ccm_out["LibSize"].max()
             mask_last = ccm_out["LibSize"] == largest_L
-            rho_at_largest = ccm_out.loc[mask_last, "sat:pre"].mean()
+            rho_at_largest = ccm_out.loc[mask_last, "sat:target"].mean()
             rho_map[iLat, iLon] = rho_at_largest
 
     # ------------------------------------------------
@@ -201,7 +205,9 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
         
         pcm.set_clim(vmin, vmax)
         cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.8)
-        cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
+        # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
+        # replace Pre to target name
+        cb.set_label(r"CCM skill $\rho$ (\hat{"+target_name+"}$|$M_{sat})")
 
         
         plt.show()
