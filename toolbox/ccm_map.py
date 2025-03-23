@@ -114,7 +114,7 @@ from pyEDM import CCM
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70",v_rage='auto',show_plot=True, dpi=100):
+def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70", sample=10, v_range='auto',show_plot=True, dpi=100):
     """
     Compute and plot a global map of CCM skill using pyEDM's CCM.
     
@@ -168,7 +168,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
                 columns     = "sat",
                 target      = "target",
                 libSizes    = libSizes,
-                sample      = 10,
+                sample      = sample,
                 random      = True,
                 replacement = False,
                 Tp          = Tp
@@ -198,10 +198,10 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
         )
         ax.coastlines()
         
-        if v_rage == 'auto':
+        if v_range == 'auto':
             vmin, vmax = np.nanmin(rho_map), np.nanmax(rho_map)
         else:
-            vmin, vmax = v_rage
+            vmin, vmax = v_range
         
         pcm.set_clim(vmin, vmax)
         cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
