@@ -114,7 +114,7 @@ from pyEDM import CCM
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70",v_rage='auto',show_plot=True):
+def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70",v_rage='auto',show_plot=True, dpi=100):
     """
     Compute and plot a global map of CCM skill using pyEDM's CCM.
     
@@ -189,7 +189,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
     # lons = np.array(ds_sat["lon"].values, dtype=np.float64)
 
     if show_plot:
-        fig = plt.figure(figsize=(11, 6))
+        fig = plt.figure(figsize=(11, 6), dpi=dpi)
         ax = plt.axes(projection=ccrs.Robinson())
         pcm = ax.pcolormesh(
             lons, lats, rho_map,
@@ -204,10 +204,10 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau, Tp,libSizes = "10 20 30 40 50 60 70"
             vmin, vmax = v_rage
         
         pcm.set_clim(vmin, vmax)
-        cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.8)
+        cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
         # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
         # replace Pre to target name
-        cb.set_label(r"CCM skill $\rho$ (\hat{"+target_name+"}$|$M_{sat})")
+        cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
 
         
         plt.show()
