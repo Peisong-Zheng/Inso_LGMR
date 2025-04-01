@@ -313,6 +313,215 @@ import numpy as np
 import matplotlib.pyplot as plt
 from pyEDM import CCM
 
+
+
+
+
+
+
+
+
+
+def ccm_significance_test_v1(ds_sat, df_pre, ds_sat_ens, lat_idx, lon_idx,
+    E=4, 
+    tau=8, 
+    n_ran=20, 
+    libSizes="100 200 300 400 500 600 700",
+    Tp=0,
+    sample=100,
+    showPlot=True
+):
+
+
+    time = ds_sat['age'].values
+    sat_mean = ds_sat['sat'].isel(lat=lat_idx, lon=lon_idx).values
+    sat_ens = ds_sat_ens['sat'].isel(lat=lat_idx, lon=lon_idx).values
+
+
+
+    
+    # Randomly select "samples" ensemble members
+    sat_ens = sat_ens[np.random.choice(sat_ens.shape[0], n_ran, replace=False), :]
+    
+    # ---------------------------
+    # 2. Generate random age series and interpolate pre for each sample
+    # ---------------------------
+    nTime = len(time)
+    # For each time point, generate a random integer between (time[i]-100) and (time[i]+100)
+    sat_age_ran = np.empty((n_ran, nTime))
+    for i in range(n_ran):
+        # np.random.randint can work with arrays if low and high are arrays
+        sat_age_ran[i] = np.random.randint(time - 100, time + 99)
+    
+    pre_arr = df_pre['pre'].values
+    pre_age = df_pre['age'].values 
+    pre_ran = np.empty((n_ran, len(pre_age)))
+    for i in range(n_ran):
+        pre_ran[i] = np.interp(sat_age_ran[i], pre_age, pre_arr)
+    
+    # ---------------------------
+    # 3. Plot Mean SAT and ensemble members (original)
+    # ---------------------------
+    if showPlot:
+        plt.figure(figsize=(10, 5))
+        for i in range(sat_ens.shape[0]):
+            plt.plot(time, zscore(sat_ens[i, :]), color='gray', alpha=0.3)
+        plt.plot(time, zscore(sat_mean), color='k', lw=2, label='Mean SAT')
+        plt.plot(df_pre['age'], zscore(df_pre['pre']), color='b', lw=2, label='Pre')
+        plt.xlabel("Time (age)")
+        plt.ylabel("SAT")
+        plt.title(f"Mean SAT vs. Ensemble SAT at lat={int(ds_sat['lat'].values[lat_idx])}, lon={ds_sat['lon'].values[lon_idx]}")
+        plt.legend()
+        plt.show()
+
+    # half = nTime // 2
+    sat_ens_shifted = np.empty_like(sat_ens)
+    for i in range(sat_ens.shape[0]):
+        ts = sat_ens[i, :]
+        break_point = np.random.randint(len(ts)//5, len(ts)*4//5)
+        randomized_swapped = np.concatenate([ts[break_point:], ts[:break_point]])
+        # shifted_ts = np.concatenate((ts[half:], ts[:half]))
+        sat_ens_shifted[i, :] = randomized_swapped
+
+
+
+    if showPlot:
+        plt.figure(figsize=(10, 5))
+        for i in range(sat_ens_shifted.shape[0]):
+            plt.plot(time, sat_ens_shifted[i, :], color='orange', alpha=0.2)
+        plt.plot(time, sat_mean, color='k', lw=2, label='Mean SAT')
+        plt.xlabel("Time (age)")
+        plt.ylabel("SAT")
+        plt.title("Mean SAT vs. Shifted Ensemble SAT")
+        plt.legend()
+        plt.show()
+    
+
+    df = pd.DataFrame({
+        "Time": df_pre["age"],
+        "X":    sat_mean,
+        "Y":    df_pre[df_pre.columns[1]]
+    })
+
+    column_name='sat'
+    target_name=df_pre.columns[1]
+
+
+    # Real-data CCM
+    ccm_out = CCM(
+        dataFrame   = df,
+        E           = E,
+        tau         = tau,
+        columns     = "X",   # predictor
+        target      = "Y",   # target
+        libSizes    = libSizes,
+        sample      = sample,
+        random      = True,
+        replacement = False,
+        Tp          = Tp
+    )
+
+
+    ran_ccm_list_xy = []
+    for i in range(sat_ens_shifted.shape[0]):
+        df_temp = pd.DataFrame({
+            'Time': time,
+            'X': sat_ens_shifted[i, :],
+            'Y': pre_ran[i]
+        })
+        try:
+            out = CCM(
+                dataFrame   = df_temp,
+                E           = E,
+                tau         = tau,
+                columns     = "X",
+                target      = "Y",
+                libSizes    = libSizes,
+                sample      = sample,
+                random      = True,
+                replacement = False,
+                Tp          = Tp
+            )
+            ran_ccm_list_xy.append(out)
+        except Exception as e:
+            print(f"Error in ensemble member {i}: {e}")
+
+
+    if showPlot:
+        # create a figure and plot the original time series and the randomized time series
+        fig1, ax = plt.subplots(1, 1, figsize=(10, 3),dpi=100)
+        ax.plot(df["Time"], df["X"], label=column_name)
+        # ax.plot(df["Time"], df["Y"], label=target_name)
+        # plot the randomized time series
+        for i in range(n_ran):
+            ax.plot(df["Time"], sat_ens_shifted[i,:], color='grey', alpha=0.3)
+        
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        ax.legend()
+        plt.show()
+
+    # Optionally plot results
+    if showPlot:
+
+        fig, ax = plt.subplots(figsize=(4, 4))
+
+        libsize = ran_ccm_list_xy[0]["LibSize"].values
+
+
+        yx_surrogates = np.column_stack([out_xy["Y:X"].values for out_xy in ran_ccm_list_xy])
+        # yx_min = yx_surrogates.min(axis=1)
+        # let the yx_min to be the 5th percentile of the yx_surrogates
+        yx_min = np.percentile(yx_surrogates, 5, axis=1)
+        # yx_max = yx_surrogates.max(axis=1)
+        # let the yx_max to be the 95th percentile of the yx_surrogates
+        yx_max = np.percentile(yx_surrogates, 95, axis=1)
+
+        xy_surrogates = np.column_stack([out_xy["X:Y"].values for out_xy in ran_ccm_list_xy])
+        # xy_min = xy_surrogates.min(axis=1)
+        # xy_max = xy_surrogates.max(axis=1)
+        # let the xy_min to be the 5th percentile of the xy_surrogates
+        xy_min = np.percentile(xy_surrogates, 5, axis=1)
+        # let the xy_max to be the 95th percentile of the xy_surrogates
+        xy_max = np.percentile(xy_surrogates, 95, axis=1)
+
+        # Fill between min and max for X->Y
+        ax.fill_between(libsize, xy_min, xy_max, color="r", alpha=0.2, label='', edgecolor='none')
+
+        # Fill between min and max for Y->X
+        ax.fill_between(libsize, yx_min, yx_max, color="b", alpha=0.2, label='', edgecolor='none')
+
+
+        ax.plot(ccm_out["LibSize"], ccm_out["Y:X"], "b-",
+                label=fr"$\rho$ ($\hat{{{column_name}}}\mid M_{{{target_name}}}$)")
+
+        ax.plot(ccm_out["LibSize"], ccm_out["X:Y"], "r-",
+                label=fr"$\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
+        
+        # set the xlim to match the range of the libsize
+        ax.set_xlim([libsize[0], libsize[-1]])
+
+        # set ylim to be -0.1 to 1.1
+        ax.set_ylim([-0.15, 1.15])
+
+        ax.set_xlabel("Library Size")
+        ax.set_ylabel("Prediction Skill (rho)")
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+
+    test_result=ccm_significance_hist(ccm_out, ran_ccm_list_xy, column_name=column_name, target_name=target_name, if_plot=showPlot)
+
+    return ccm_out, ran_ccm_list_xy, test_result
+
+
+
+
+
+
+
 def ccm_significance_test_v2(
     df_sd, 
     df_pre,
