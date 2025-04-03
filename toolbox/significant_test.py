@@ -645,11 +645,11 @@ def ccm_significance_test_v2(
     if showPlot:
         # create a figure and plot the original time series and the randomized time series
         fig1, ax = plt.subplots(1, 1, figsize=(10, 3),dpi=100)
-        ax.plot(df["Time"], df["X"], label=column_name)
-        # ax.plot(df["Time"], df["Y"], label=target_name)
+        ax.plot(df["Time"], zscore(df["X"]), label=column_name)
+        ax.plot(df["Time"], zscore(df["Y"]), label=target_name)
         # plot the randomized time series
         for i in range(n_ran):
-            ax.plot(df["Time"], ran_time_series[i], color='grey', alpha=0.3)
+            ax.plot(df["Time"], zscore(ran_time_series[i]), color='grey', alpha=0.3)
         
         ax.set_xlabel("Time")
         ax.set_ylabel("Value")
