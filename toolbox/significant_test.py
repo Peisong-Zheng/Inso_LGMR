@@ -484,12 +484,7 @@ def ccm_significance_test_v3(
         if n % 2 == 0:
             random_phases[-1] = phases[-1]
         
-        # generate the random amplitudes
-        # random_amplitudes = np.random.uniform(0, 1, len(amplitudes))
-        # Construct surrogate Fourier coefficients with original amplitudes and randomized phases
         surrogate_fft = amplitudes * np.exp(1j * random_phases)
-        # surrogate_fft = random_amplitudes * np.exp(1j * random_phases)
-        # Inverse FFT to get the surrogate time series
         surrogate_data = np.fft.irfft(surrogate_fft, n=n)
         
         return surrogate_data
