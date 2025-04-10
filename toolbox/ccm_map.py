@@ -8,7 +8,7 @@ from pyEDM import CCM
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-def cal_raw_ccm_map(ds_sat, df_pre, E, tau=-1, Tp=0,libSizes = "10 20 30 40 50 60 70", sample=10, random=False,v_range='auto',show_plot=True, dpi=100):
+def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,libSizes = "10 20 30 40 50 60 70", sample=10, random=False,v_range='auto',show_plot=True, dpi=100):
     """
     Compute and plot a global map of CCM skill using pyEDM's CCM.
     
@@ -34,7 +34,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau=-1, Tp=0,libSizes = "10 20 30 40 50 6
     
     # CCM parameter: library sizes (this could also be made an input if desired)
 
-    column_name = "sat"
+
     # target_name = column name of the second column in the df_pre
     target_name = df_pre.columns[1]
     
@@ -45,7 +45,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau=-1, Tp=0,libSizes = "10 20 30 40 50 6
     for iLat in range(nlat):
         for iLon in range(nlon):
             # Extract the local "sat" time series
-            sat_ts = ds_sat["sat"].isel(lat=iLat, lon=iLon).values
+            sat_ts = ds_sat[column_name].isel(lat=iLat, lon=iLon).values
 
             # Build temporary DataFrame for CCM (predicting "X" using "Y")
             temp_df = pd.DataFrame({
@@ -73,6 +73,8 @@ def cal_raw_ccm_map(ds_sat, df_pre, E, tau=-1, Tp=0,libSizes = "10 20 30 40 50 6
             mask_last = ccm_out["LibSize"] == largest_L
             rho_at_largest = ccm_out.loc[mask_last, "sat:target"].mean()
             rho_map[iLat, iLon] = rho_at_largest
+
+            print(f"Processed grid point: lat index={iLat}, lon index={iLon}, max_rho={rho_at_largest}")
 
     # ------------------------------------------------
     # Plot the global map using Cartopy (Robinson projection)
