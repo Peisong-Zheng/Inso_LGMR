@@ -8,7 +8,7 @@ from pyEDM import CCM
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 
-def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,libSizes = "10 20 30 40 50 60 70", sample=10, random=False,v_range='auto',show_plot=True, dpi=100):
+def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,libSizes = "10 20 30 40 50 60 70", sample=10, random=False,v_range='auto',show_plot=True, dpi=100, cmap='jet'):
     """
     Compute and plot a global map of CCM skill using pyEDM's CCM.
     
@@ -84,29 +84,34 @@ def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,li
     # lats = np.array(ds_sat["lat"].values, dtype=np.float64)
     # lons = np.array(ds_sat["lon"].values, dtype=np.float64)
 
+    safe_column_name = column_name.replace('_', r'\_')
+    safe_target_name = target_name.replace('_', r'\_')
+
     if show_plot:
-        fig = plt.figure(figsize=(11, 6), dpi=dpi)
-        ax = plt.axes(projection=ccrs.Robinson())
-        pcm = ax.pcolormesh(
-            lons, lats, rho_map,
-            transform=ccrs.PlateCarree(),  # data in lat/lon
-            shading="auto"
-        )
-        ax.coastlines()
+        # fig = plt.figure(figsize=(11, 6), dpi=dpi)
+        # ax = plt.axes(projection=ccrs.Robinson())
+        # pcm = ax.pcolormesh(
+        #     lons, lats, rho_map,
+        #     transform=ccrs.PlateCarree(),  # data in lat/lon
+        #     shading="auto"
+        # )
+        # ax.coastlines()
         
-        if v_range == 'auto':
-            vmin, vmax = np.nanmin(rho_map), np.nanmax(rho_map)
-        else:
-            vmin, vmax = v_range
+        # if v_range == 'auto':
+        #     vmin, vmax = np.nanmin(rho_map), np.nanmax(rho_map)
+        # else:
+        #     vmin, vmax = v_range
         
-        pcm.set_clim(vmin, vmax)
-        cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
-        # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
-        # replace Pre to target name
-        cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
+        # pcm.set_clim(vmin, vmax)
+        # cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
+        # # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
+        # # replace Pre to target name
+        # cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
+
+        plot_rho_map(rho_map, ds_sat, v_range='auto', color_map=cmap, column_name=safe_column_name, target_name=safe_target_name)
 
         
-        plt.show()
+        # plt.show()
 
     return rho_map
 
@@ -139,7 +144,7 @@ def postprocess_rho_map(raw_rho_map, significance_map):
     processed_rho_map[~significance_map] = np.nan
     return processed_rho_map
 
-def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='viridis'):
+def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='sat_diff', target_name='pre'):
     """
     Plot the processed rho map with proper handling of NaN values.
 
@@ -181,5 +186,6 @@ def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='viridis'):
     pcm.set_clim(vmin, vmax)
     cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
     # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
+    cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
 
 
