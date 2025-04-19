@@ -860,3 +860,174 @@ def ccm_significance_test_v2_df(
 
     return ccm_out, ran_ccm_list_xy, test_result
 
+
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from pyEDM import CCM
+from scipy.stats import zscore
+
+def ccm_significance_test_v3_df(
+    df_input,
+    E=5, 
+    tau=-8, 
+    n_ran=20, 
+    libSizes="100 200 300 400 500 600 700",
+    Tp=0,
+    sample=100,
+    random=False,
+    uni_dir=False,
+    showPlot=True
+):
+
+
+    def randomize_stadial(stadial_data, seed=None):
+        """
+        Generate a surrogate time series with the same amplitude (spectrum) as the input stadial_data
+        but with randomized phases. This method uses the Fourier transform to preserve the spectral
+        structure while removing any specific temporal ordering.
+        """
+        if seed is not None:
+            np.random.seed(seed)
+        
+        n = len(stadial_data)
+        # Compute the Fourier transform
+        fft_data = np.fft.rfft(stadial_data)
+        amplitudes = np.abs(fft_data)
+        phases = np.angle(fft_data)
+        
+        # Generate random phases
+        random_phases = np.random.uniform(0, 2 * np.pi, len(phases))
+        # Preserve the phase of the zero-frequency (DC) component
+        random_phases[0] = phases[0]
+        # If n is even, preserve the Nyquist component's phase
+        if n % 2 == 0:
+            random_phases[-1] = phases[-1]
+        
+        surrogate_fft = amplitudes * np.exp(1j * random_phases)
+        surrogate_data = np.fft.irfft(surrogate_fft, n=n)
+        
+        return surrogate_data
+
+    column_name=df_input.columns[1]
+    target_name=df_input.columns[2]
+
+    df = pd.DataFrame({
+        "Time": df_input["age"],
+        "X":    df_input[column_name],
+        "Y":    df_input[target_name]
+    })
+
+
+
+    # Real-data CCM
+    ccm_out = CCM(
+        dataFrame   = df,
+        E           = E,
+        tau         = tau,
+        columns     = "X",   # predictor
+        target      = "Y",   # target
+        libSizes    = libSizes,
+        sample      = sample,
+        random      = random,
+        replacement = False,
+        Tp          = Tp
+    )
+
+    # create an array to store the randomly generated time X time series
+    ran_time_series = np.zeros((n_ran, len(df["X"])))
+    # Generate surrogate draws
+    ran_ccm_list_xy = []
+    for i in range(n_ran):
+        # 1) Generate random surrogate for X
+        X_ran = randomize_stadial(df["X"].values)
+        # add the randomized time series to the array
+        ran_time_series[i] = X_ran
+
+        
+        # 2) Create DataFrame with the same Y but newly randomized X
+        df_surr = pd.DataFrame({
+            "Time": df["Time"],
+            "X":    X_ran,
+            "Y":    df["Y"].values
+        })
+        
+        # 3) Run CCM for X->Y on the surrogate data
+        out_xy = CCM(
+            dataFrame   = df_surr,
+            E           = E,
+            tau         = tau,
+            columns     = "X",
+            target      = "Y",
+            libSizes    = libSizes,
+            sample      = sample,
+            random      = random,
+            replacement = False,
+            Tp          = Tp
+        )
+        ran_ccm_list_xy.append(out_xy)
+
+    if showPlot:
+        # create a figure and plot the original time series and the randomized time series
+        fig1, ax = plt.subplots(1, 1, figsize=(10, 3),dpi=100)
+
+        # plot the randomized time series
+        for i in range(n_ran):
+            ax.plot(df["Time"], zscore(ran_time_series[i]), color='grey', alpha=0.3)
+        
+        ax.plot(df["Time"], zscore(df["X"]), color='b', label=column_name)
+        ax.plot(df["Time"], zscore(df["Y"]), color='orange', label=target_name)
+
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        ax.legend()
+        plt.show()
+
+
+    safe_column_name = column_name.replace('_', r'\_')
+    safe_target_name = target_name.replace('_', r'\_')
+
+    if showPlot:
+
+        fig, ax = plt.subplots(figsize=(4, 4))
+
+        libsize = ran_ccm_list_xy[0]["LibSize"].values
+
+        # Stack the surrogate data for Y:X and X:Y
+        yx_surrogates = np.column_stack([out_xy["Y:X"].values for out_xy in ran_ccm_list_xy])
+        # 5th and 95th percentiles for the Y:X surrogates
+        yx_min = np.percentile(yx_surrogates, 5, axis=1)
+        yx_max = np.percentile(yx_surrogates, 95, axis=1)
+
+        xy_surrogates = np.column_stack([out_xy["X:Y"].values for out_xy in ran_ccm_list_xy])
+        # 5th and 95th percentiles for the X:Y surrogates
+        xy_min = np.percentile(xy_surrogates, 5, axis=1)
+        xy_max = np.percentile(xy_surrogates, 95, axis=1)
+
+        # Fill between for X->Y and Y->X
+        ax.fill_between(libsize, xy_min, xy_max, color="r", alpha=0.2, label='', edgecolor='none')
+        ax.fill_between(libsize, yx_min, yx_max, color="b", alpha=0.2, label='', edgecolor='none')
+
+        # Use the escaped names in the labels
+        ax.plot(ccm_out["LibSize"], ccm_out["Y:X"], "b-",
+                label=fr"$\rho$ ($\hat{{{safe_column_name}}}\mid M_{{{safe_target_name}}}$)")
+
+        ax.plot(ccm_out["LibSize"], ccm_out["X:Y"], "r-",
+                label=fr"$\rho$ ($\hat{{{safe_target_name}}}\mid M_{{{safe_column_name}}}$)")
+
+        # Set limits and labels
+        ax.set_xlim([libsize[0], libsize[-1]])
+        ax.set_ylim([-0.15, 1.15])
+        ax.set_xlabel("Library Size")
+        ax.set_ylabel("Prediction Skill (rho)")
+        ax.legend()
+        plt.tight_layout()
+        plt.show()
+
+
+
+    test_result=ccm_significance_hist(ccm_out, ran_ccm_list_xy, column_name=column_name, target_name=target_name, if_plot=showPlot)
+
+    return ccm_out, ran_ccm_list_xy, test_result
