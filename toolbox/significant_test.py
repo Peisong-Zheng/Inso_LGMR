@@ -260,7 +260,7 @@ def ccm_significance_test_v2(
     if flip_pre:
         df_pre['pre']=df_pre['pre'].values*-1
     
-    column_name=column_name
+
     target_name=df_pre.columns[1]
 
     time = ds_sat['age'].values
