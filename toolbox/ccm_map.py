@@ -84,8 +84,8 @@ def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,li
     # lats = np.array(ds_sat["lat"].values, dtype=np.float64)
     # lons = np.array(ds_sat["lon"].values, dtype=np.float64)
 
-    safe_column_name = column_name.replace('_', r'\_')
-    safe_target_name = target_name.replace('_', r'\_')
+    # safe_column_name = column_name.replace('_', r'\_')
+    # safe_target_name = target_name.replace('_', r'\_')
 
     if show_plot:
         # fig = plt.figure(figsize=(11, 6), dpi=dpi)
@@ -108,7 +108,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,li
         # # replace Pre to target name
         # cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
 
-        plot_rho_map(rho_map, ds_sat, v_range='auto', color_map=cmap, column_name=safe_column_name, target_name=safe_target_name)
+        plot_rho_map(rho_map, ds_sat, v_range='auto', color_map=cmap, column_name=column_name, target_name=target_name)
 
         
         # plt.show()
@@ -144,7 +144,7 @@ def postprocess_rho_map(raw_rho_map, significance_map):
     processed_rho_map[~significance_map] = np.nan
     return processed_rho_map
 
-def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='sat_diff', target_name='pre'):
+def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='sat_diff', target_name='pre', dpi=100):
     """
     Plot the processed rho map with proper handling of NaN values.
 
@@ -168,7 +168,7 @@ def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='
     """
     lats = ds_sat["lat"].values
     lons = ds_sat["lon"].values
-    fig = plt.figure(figsize=(11, 6))
+    fig = plt.figure(figsize=(11, 6), dpi=dpi)
     ax = plt.axes(projection=ccrs.Robinson())
     pcm = ax.pcolormesh(
         lons, lats, rho_map,
@@ -186,6 +186,9 @@ def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='
     pcm.set_clim(vmin, vmax)
     cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
     # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
-    cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
+
+    safe_column_name = column_name.replace('_', r'\_')
+    safe_target_name = target_name.replace('_', r'\_')
+    cb.set_label(fr"CCM skill $\rho$ ($\hat{{{safe_target_name}}}\mid M_{{{safe_column_name}}}$)")
 
 
