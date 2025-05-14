@@ -7,7 +7,6 @@ from scipy.stats import zscore
 
 
 
-
 def ccm_significance_test_v1(ds_sat, df_pre, ds_sat_ens, column_name='sat_diff', flip_pre=True, lat_idx=80, lon_idx=0,
     E=5, 
     tau=-4, 

@@ -105,7 +105,7 @@ def global_ccm_significance_map_parallel(
             if mode == 'uni':
                 sig = test_res[0]
             elif mode == 'bi':
-                sig = test_res[0] and test_res[1]
+                sig = test_res[0] and not test_res[1]
             else:
                 raise ValueError(f"Unknown mode: {mode}")
 
