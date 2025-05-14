@@ -494,6 +494,9 @@ def ccm_significance_test_v3(
         "X":    sat_mean,
         "Y":    df_pre[df_pre.columns[1]]
     })
+    
+    # drop rows with NaN values
+    df = df.dropna()
 
 
 

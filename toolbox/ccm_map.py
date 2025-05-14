@@ -184,11 +184,27 @@ def plot_rho_map(rho_map, ds_sat, v_range='auto', color_map='jet', column_name='
         vmin, vmax = v_range
 
     pcm.set_clim(vmin, vmax)
-    cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.6)
+    cb = plt.colorbar(pcm, orientation="horizontal", pad=0.07, shrink=0.5)
     # cb.set_label(r"CCM skill $\rho$ (\hat{Pre}$|$M_{sat})")
 
     safe_column_name = column_name.replace('_', r'\_')
     safe_target_name = target_name.replace('_', r'\_')
-    cb.set_label(fr"CCM skill $\rho$ ($\hat{{{safe_target_name}}}\mid M_{{{safe_column_name}}}$)")
+    # cb.set_label(fr"CCM skill $\rho$ ($\hat{{{safe_target_name}}}\mid M_{{{safe_column_name}}}$)")
+    cb.set_label(fr"$\rho$")
+
+    return fig
+
+
+    # # if it's SAT_diff, render “diff” as subscript
+    # if column_name == 'SAT_diff':
+    #     label_column = r"SAT$_{\mathrm{diff}}$"
+    # else:
+    #     label_column = column_name.replace('_', r'\_')
+    
+    # safe_column_name = label_column
+    # safe_target_name = target_name.replace('_', r'\_')
+
+    # cb.set_label(fr"CCM skill $\rho$ ($\hat{{{safe_target_name}}}\mid M_{{{safe_column_name}}}$)")
+
 
 

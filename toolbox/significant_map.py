@@ -15,6 +15,98 @@ from toolbox import significant_test as st
 import importlib
 importlib.reload(st)
 
+import numpy as np
+import pandas as pd
+import xarray as xr
+from joblib import Parallel, delayed
+from tqdm.auto import tqdm
+
+
+
+
+
+
+# ── worker function ────────────────────────────────────────────────
+def _do_grid_point(i, j, *, ds_sat_diff, df_pre,
+                   test_version, E, tau, Tp, libSizes,
+                   n_ran, sample, random, mode, column_name):
+
+
+    test_func = {'v1': st.ccm_significance_test_v1,
+                 'v2': st.ccm_significance_test_v2,
+                 'v3': st.ccm_significance_test_v3}[test_version]
+
+    ccm_out, _, test_res = test_func(
+        ds_sat_diff, df_pre,
+        lat_idx=i, lon_idx=j,
+        column_name=column_name,
+        E=E, tau=tau, Tp=Tp,
+        libSizes=libSizes,
+        n_ran=n_ran, sample=sample, random=random,
+        flip_pre=False, showPlot=False
+    )
+
+    rho_val = ccm_out["X:Y"].values[-1]
+    sig_val = test_res[0] if mode == 'uni' else (test_res[0] and not test_res[1])
+
+    return i, j, sig_val, rho_val
+
+
+# ── PARALLEL main routine ──────────────────────────────────────────
+def sig_map_rho_allinone(
+        ds_sat_diff, df_pre,
+        E=5, tau=-1, Tp=0,
+        libSizes="10 20 30 40 50 60 70",
+        n_ran=10, sample=10, random=False,
+        column_name='sat_diff',
+        function='v3',
+        mode='uni',
+        n_jobs=-1,             # -1 = all cores
+        show_figure=False,
+        verbose=True):
+
+
+    nlat, nlon = ds_sat_diff.sizes["lat"], ds_sat_diff.sizes["lon"]
+    significance_map = np.zeros((nlat, nlon), dtype=bool)
+    rho_map          = np.full((nlat, nlon), np.nan)
+
+    tasks = [(i, j) for i in range(nlat) for j in range(nlon)]
+
+    results = Parallel(n_jobs=n_jobs, backend='loky', verbose=0)(
+        delayed(_do_grid_point)(
+            i, j,
+            ds_sat_diff=ds_sat_diff,
+            df_pre=df_pre,
+            test_version=function,
+            E=E, tau=tau, Tp=Tp, libSizes=libSizes,
+            n_ran=n_ran, sample=sample, random=random,
+            mode=mode, column_name=column_name
+        )
+        for (i, j) in tqdm(tasks, disable=not verbose,
+                           desc=f"CCM {function}")
+    )
+
+    for i, j, sig, rho in results:
+        significance_map[i, j] = sig
+        rho_map[i, j]          = rho
+
+    if show_figure:
+        plot_sig_map(ds_sat_diff, significance_map, dpi=100)
+
+    return significance_map, rho_map
+
+
+
+
+
+
+
+
+
+
+
+
+
 def global_ccm_significance_map_parallel(
     ds_sat_diff,
     df_pre,
