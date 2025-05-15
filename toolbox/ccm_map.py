@@ -108,7 +108,7 @@ def cal_raw_ccm_map(ds_sat, df_pre, column_name='sat_diff', E=5, tau=-4, Tp=0,li
         # # replace Pre to target name
         # cb.set_label(fr"CCM skill $\rho$ ($\hat{{{target_name}}}\mid M_{{{column_name}}}$)")
 
-        plot_rho_map(rho_map, ds_sat, v_range='auto', color_map=cmap, column_name=column_name, target_name=target_name)
+        plot_rho_map(rho_map, ds_sat, v_range=v_range, color_map=cmap, column_name=column_name, target_name=target_name)
 
         
         # plt.show()
